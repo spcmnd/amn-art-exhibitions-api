@@ -1,13 +1,15 @@
+import { InMemoryDBService } from '@nestjs-addons/in-memory-db';
 import { Controller, Get } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { ExhibitionService } from './exhibition.service';
+import { ExhibitionEntity } from './exhibition.entity';
 
 @Controller('exhibitions')
 export class ExhibitionController {
-  constructor(private _exhibitionService: ExhibitionService) {}
+  constructor(
+    private _exhibitionMemoryService: InMemoryDBService<ExhibitionEntity>,
+  ) {}
 
   @Get()
-  public getExhibitions(): Observable<any> {
-    return this._exhibitionService.getExternalCurrentExhibitions();
+  public getExhibitions(): ExhibitionEntity[] {
+    return this._exhibitionMemoryService.getAll();
   }
 }
