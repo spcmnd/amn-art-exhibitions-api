@@ -1,10 +1,13 @@
-import { InMemoryDBService } from '@nestjs-addons/in-memory-db';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { map, Observable } from 'rxjs';
+import { map, Observable, switchMap } from 'rxjs';
+import { GeocoderService } from '../geocoder/geocoder.service';
+import { WeatherService } from '../weather/weather.service';
+import { WeatherForecast } from '../weather/weather.types';
 import { ExhibitionEntity } from './exhibition.entity';
+import { ExhibitionRepository } from './exhibition.repository';
 import { ExternalCurrentExhibitionsResponseDTO } from './exhibition.types';
 
 @Injectable()
@@ -16,7 +19,9 @@ export class ExhibitionService {
   constructor(
     private _httpService: HttpService,
     private _configService: ConfigService,
-    private _exhibitionMemoryService: InMemoryDBService<ExhibitionEntity>,
+    private _exhibitionRepository: ExhibitionRepository,
+    private _geocoderService: GeocoderService,
+    private _weatherService: WeatherService,
   ) {
     this._externalApiUrl = this._configService.get(
       'EXHIBITION_API_URL',
@@ -31,6 +36,8 @@ export class ExhibitionService {
   }
 
   public getExternalCurrentExhibitions(): Observable<ExternalCurrentExhibitionsResponseDTO> {
+    this._logger.debug('External Exhibitions API called');
+
     return this._httpService
       .get(`${this._externalApiUrl}/exhibition`, {
         params: {
@@ -43,9 +50,27 @@ export class ExhibitionService {
       .pipe(map((response) => response.data));
   }
 
+  public getForecastFromExhibition(
+    exhibition: ExhibitionEntity,
+  ): Observable<WeatherForecast> {
+    const venue = exhibition.venue;
+
+    return this._geocoderService
+      .getCoordinatesFromAddress(
+        venue.address1,
+        venue.city,
+        venue.state,
+        venue.zipcode,
+      )
+      .pipe(
+        switchMap((geoCoordinates) =>
+          this._weatherService.getWeatherFromGeoCoordinates(geoCoordinates),
+        ),
+      );
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_5PM)
   public handleTenSecondsCron(): void {
-    this._logger.debug('External Exhibitions API called');
     this.updateExternalExhibitionsData();
   }
 
@@ -63,16 +88,16 @@ export class ExhibitionService {
               enddate: exhibitionDTO.enddate,
               shortdescription: exhibitionDTO.shortdescription,
               title: exhibitionDTO.title,
-              venue: exhibitionDTO.venue,
+              venue: exhibitionDTO.venues[0],
             };
           });
-        this._exhibitionMemoryService.createMany(exhibitionEntities);
+        this._exhibitionRepository.createMany(exhibitionEntities);
       },
     });
   }
 
   private dropExhibitionsMemory(): void {
-    const exhibitions = this._exhibitionMemoryService.getAll();
-    this._exhibitionMemoryService.deleteMany(exhibitions.map((e) => e.id));
+    const exhibitions = this._exhibitionRepository.getAll();
+    this._exhibitionRepository.deleteMany(exhibitions.map((e) => e.id));
   }
 }

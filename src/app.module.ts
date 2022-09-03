@@ -5,13 +5,17 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ExhibitionModule } from './exhibition/exhibition.module';
+import { GeocoderModule } from './geocoder/geocoder.module';
+import { WeatherModule } from './weather/weather.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    ExhibitionModule,
     ScheduleModule.forRoot(),
-    InMemoryDBModule.forRoot(),
+    InMemoryDBModule.forRoot({}),
+    ExhibitionModule,
+    GeocoderModule,
+    WeatherModule,
   ],
   controllers: [AppController],
   providers: [AppService],
