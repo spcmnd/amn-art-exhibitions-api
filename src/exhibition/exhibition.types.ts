@@ -1,3 +1,6 @@
+import { WeatherForecast } from 'src/weather/weather.types';
+import { ExhibitionEntity } from './exhibition.entity';
+
 export interface VenueDTO {
   country: string;
   begindate: string;
@@ -38,5 +41,9 @@ interface ExhibitionDTO {
   enddate: string;
   description: string;
   shortdescription: string;
-  venue: VenueDTO;
+  venues: VenueDTO[];
+}
+
+export interface CurrentExhibitionDTO extends ExhibitionEntity {
+  forecast: WeatherForecast;
 }
