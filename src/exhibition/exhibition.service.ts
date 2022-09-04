@@ -31,10 +31,14 @@ export class ExhibitionService {
     ) as string;
     this._logger = new Logger(ExhibitionService.name);
 
-    // DEMO - Initialize data
-    this.updateExternalExhibitionsData().subscribe({
-      next: () => this.updateWeatherForecast(),
-    });
+    try {
+      // DEMO - Initialize data
+      this.updateExternalExhibitionsData().subscribe({
+        next: () => this.updateWeatherForecast(),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   public getExternalCurrentExhibitions(): Observable<ExternalCurrentExhibitionsResponseDTO> {
