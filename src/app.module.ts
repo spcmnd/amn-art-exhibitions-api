@@ -1,12 +1,21 @@
+import { InMemoryDBModule } from '@nestjs-addons/in-memory-db';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppService } from './app.service';
 import { ExhibitionModule } from './exhibition/exhibition.module';
+import { GeocoderModule } from './geocoder/geocoder.module';
+import { WeatherModule } from './weather/weather.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), ExhibitionModule],
-  controllers: [AppController],
+  imports: [
+    ConfigModule.forRoot(),
+    ScheduleModule.forRoot(),
+    InMemoryDBModule.forRoot({}),
+    ExhibitionModule,
+    GeocoderModule,
+    WeatherModule,
+  ],
   providers: [AppService],
 })
 export class AppModule {}
