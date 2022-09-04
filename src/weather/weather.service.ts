@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { map, Observable, switchMap } from 'rxjs';
+import { catchError, map, Observable, switchMap } from 'rxjs';
 import { GeoCoordinates } from 'src/geocoder/geocoder.types';
 import {
   WeatherForecast,
@@ -32,6 +32,9 @@ export class WeatherService {
         `${this._weatherApiUrl}/points/${geoCoordinates.lat},${geoCoordinates.lon}`,
       )
       .pipe(
+        catchError((e) => {
+          throw new HttpException(e.response.data, e.response.status);
+        }),
         map((response) => response.data),
         switchMap((weatherFromGeoCoordinatesResponseDTO) => {
           this._logger.debug('Get Weather From GeoCoordinates Response');
@@ -43,7 +46,12 @@ export class WeatherService {
 
           return this._httpService
             .get<WeatherForecastResponseDTO>(forecastUrl)
-            .pipe(map((response) => response.data));
+            .pipe(
+              map((response) => response.data),
+              catchError((e) => {
+                throw new HttpException(e.response.data, e.response.status);
+              }),
+            );
         }),
         map((weatherForecastResponseDTO) => {
           this._logger.debug('Weather Forecast Response');
