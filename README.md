@@ -1,5 +1,7 @@
 # Art Exhibitions API
 
+This application written in NestJS aims to provide an endpoint that list the current exhibitions coming from the **Harvard Art Museums API** together with a forecast for each venue coming from **api.weather.gov**. The data is stored in memory with a *daily* update for the exhibitions and a *hourly* update for the weather forecast.
+
 ## Getting Started
 
 This application has been developped with:
