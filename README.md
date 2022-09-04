@@ -45,3 +45,7 @@ npm start
 
 npm run start:dev # To get hot reload
 ```
+
+## Important Notes
+
+Sometimes, the Weather API returns a 500 error response, simply restart the NestJS application to make it work again. This exception handling is not done yet.
