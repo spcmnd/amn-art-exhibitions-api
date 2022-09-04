@@ -19,4 +19,5 @@ export interface WeatherForecastPeriodDTO {
   number: number;
   name: string;
   shortForecast: string;
+  startTime: string;
 }

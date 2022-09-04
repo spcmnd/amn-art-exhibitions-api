@@ -50,36 +50,17 @@ export class WeatherService {
           this._logger.debug(weatherForecastResponseDTO);
 
           const periods = weatherForecastResponseDTO.properties.periods;
-          const todayForecast = periods.find((p) => p.name === 'Today');
+          const todayForecast = periods.find(
+            (p) => new Date(p.startTime).getDate() === new Date().getDate(),
+          );
+          const tomorrowForecast = periods.find(
+            (p) => new Date(p.startTime).getDate() === new Date().getDate() + 1,
+          );
 
-          if (todayForecast) {
-            const tomorrowForecast = periods.find(
-              (p) => p.number === todayForecast?.number + 2,
-            );
-
-            return {
-              today: todayForecast?.shortForecast ?? 'Unknown',
-              tomorrow: tomorrowForecast?.shortForecast ?? 'Unknown',
-            };
-          } else {
-            const tonightForecast = periods.find((p) => p.name === 'Tonight');
-
-            if (!tonightForecast) {
-              return {
-                today: 'Unknown',
-                tomorrow: 'Unknown',
-              };
-            }
-
-            const tomorrowForecast = periods.find(
-              (p) => p.number === tonightForecast?.number + 2,
-            );
-
-            return {
-              today: tonightForecast?.shortForecast ?? 'Unknown',
-              tomorrow: tomorrowForecast?.shortForecast ?? 'Unknown',
-            };
-          }
+          return {
+            today: todayForecast?.shortForecast ?? 'Unknown',
+            tomorrow: tomorrowForecast?.shortForecast ?? 'Unknown',
+          };
         }),
       );
   }

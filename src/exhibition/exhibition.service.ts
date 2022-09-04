@@ -32,7 +32,9 @@ export class ExhibitionService {
     this._logger = new Logger(ExhibitionService.name);
 
     // DEMO - Initialize data
-    this.updateExternalExhibitionsData();
+    this.updateExternalExhibitionsData().subscribe({
+      next: () => this.updateWeatherForecast(),
+    });
   }
 
   public getExternalCurrentExhibitions(): Observable<ExternalCurrentExhibitionsResponseDTO> {
@@ -70,34 +72,68 @@ export class ExhibitionService {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_5PM)
-  public handleTenSecondsCron(): void {
-    this.updateExternalExhibitionsData();
+  public handleEverydayCron(): void {
+    this.updateExternalExhibitionsData().subscribe();
   }
 
-  private updateExternalExhibitionsData(): void {
-    this.dropExhibitionsMemory();
-    this.getExternalCurrentExhibitions().subscribe({
-      next: (data) => {
-        const exhibitionDTOs = data.records;
-        const exhibitionEntities: Partial<ExhibitionEntity>[] =
-          exhibitionDTOs.map((exhibitionDTO) => {
-            return {
-              exhibitionId: exhibitionDTO.id,
-              begindate: exhibitionDTO.begindate,
-              description: exhibitionDTO.description,
-              enddate: exhibitionDTO.enddate,
-              shortdescription: exhibitionDTO.shortdescription,
-              title: exhibitionDTO.title,
-              venue: exhibitionDTO.venues[0],
-            };
-          });
-        this._exhibitionRepository.createMany(exhibitionEntities);
-      },
+  @Cron(CronExpression.EVERY_HOUR)
+  public handleEveryhourCron(): void {
+    this.updateWeatherForecast();
+  }
+
+  private updateExternalExhibitionsData(): Observable<void> {
+    return new Observable((obs) => {
+      this.dropExhibitionsMemory();
+      this.getExternalCurrentExhibitions().subscribe({
+        next: (data) => {
+          const exhibitionDTOs = data.records;
+          const exhibitionEntities: Partial<ExhibitionEntity>[] =
+            exhibitionDTOs.map((exhibitionDTO) => {
+              return {
+                exhibitionId: exhibitionDTO.id,
+                begindate: exhibitionDTO.begindate,
+                description: exhibitionDTO.description,
+                enddate: exhibitionDTO.enddate,
+                shortdescription: exhibitionDTO.shortdescription,
+                title: exhibitionDTO.title,
+                venue: exhibitionDTO.venues[0],
+              };
+            });
+          this._exhibitionRepository.createMany(exhibitionEntities);
+
+          obs.next();
+          obs.complete();
+        },
+      });
     });
   }
 
   private dropExhibitionsMemory(): void {
     const exhibitions = this._exhibitionRepository.getAll();
     this._exhibitionRepository.deleteMany(exhibitions.map((e) => e.id));
+  }
+
+  private updateWeatherForecast(): void {
+    const exhibitions = this._exhibitionRepository.getAll();
+
+    if (!exhibitions.length) {
+      return;
+    }
+
+    // Filter exhibitions without valid address
+    const validExhibitions = exhibitions.filter(
+      (e) =>
+        (e.venue.address1 && e.venue.city && e.venue.state) ||
+        (e.venue.address1 && e.venue.zipcode),
+    );
+
+    for (const exhibition of validExhibitions) {
+      this.getForecastFromExhibition(exhibition).subscribe({
+        next: (weather) => {
+          exhibition.forecast = weather;
+          this._exhibitionRepository.update(exhibition);
+        },
+      });
+    }
   }
 }
